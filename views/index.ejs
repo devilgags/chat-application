@@ -1,0 +1,166 @@
+<html>
+<head>
+  <title>Speak good or remain silent </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link href="/css/bootstrap.css" rel="stylesheet">
+  <link href="/css/custom.css" rel="stylesheet">
+  <link rel="icon" href="/images/chat_logo.png" type="image/x-icon"/>
+</head>
+
+<body>
+
+  <div class="container">
+    <div class="row">
+     <div class="" align="center" id="nickWrap">
+       <img height="300" width="300" class="img-circle" src="/images/cartoon.png"/>
+         <h3>Welcome to Chat Application. What's your cool name ?</h3>
+       <p id="nickError"></p>
+       <div class="form-group">
+       <form id="setNick" role="form">
+         <input  type="text" autofocus required placeholder="Your nickname" id="nickname"/>
+         <input class="btn btn-danger" type="submit" value="Submit"/>
+       </form>
+     </div>
+    </div>
+   </div>
+ </div>
+
+
+<div id="chatWindow">
+
+ <div class="container">
+ 		<div class="row">
+ 			<div class="col-md-6 col-sm-offset-1 panel panel-primary">
+            <div class="panel-body">
+               <div id="contentWrap" >
+                  <div id="chatWrap" style=" border-radius: 10px;
+                      background: #F0E0B0;background: url(/images/back.jpg);min-height: 400;max-height: 400;overflow-y: scroll;">
+                      <div id="chat"></div>
+                  </div>
+               </div>
+            </div>
+        </div>
+   <br/>
+      <div class="col-md-4 col-sm-offset-1 panel panel-default">
+        <div class="panel-heading">Currently Online</div>
+         <div class="panel-body">
+            <div  id="users"></div>
+        </div>
+      </div>
+        <h4 align="center">Invite your friends by sharing the <a target="_blank" href="https://awesome-socket-io.herokuapp.com/">link</a></h4>
+   </div>
+ </div>
+ <br/>
+
+ <div class="row">
+  <div class="col-md-3 col-md-offset-2">
+    <form id="message-box">
+      <div class="form-group">
+       <textarea required autofocus style="background-color:#ffffe6;border:double 4px orange;border-radius: 0.5em;" rows="3" cols="60" id="message" placeholder="Write your message and press enter.."></textarea>
+      </div>
+   </form>
+ </div>
+ </div>
+
+ <div class="row">
+  <h1 align="center"><code>@gagan  hello</code> to say hello to harry privately</h1>
+ </div>
+
+</div>
+
+   <script src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
+   <script src="/socket.io/socket.io.js"></script>
+   <script src="/js/bootstrap.js"></script>
+
+   <script>
+    jQuery(function($){
+       var socket=io.connect();
+       var $messageForm=$('#message-box');
+       var $messageBox=$('#message');
+       var $chat=$('#chat');
+
+       var chatOuter=$('#chatWrap');
+       var chatInner=$('#chat');
+
+       var $users=$('#users');
+       var $nickForm=$('#setNick');
+       var $nickError=$('#nickError');
+       var $nickBox=$('#nickname');
+       var title='anonymous';
+
+       $('#message').keydown(function(event) {
+          if (event.keyCode == 13) {
+               $(this.form).submit()
+              return false;
+             }
+       });
+
+
+       $nickForm.submit(function(e){
+           e.preventDefault();
+           title=$nickBox.val();
+           socket.emit('new user',$nickBox.val(),function(data){
+                if(data){
+                  $('#nickWrap').hide();
+                    document.title=title;
+                  $('#chatWindow').show();
+                }else{
+                  $nickError.html("Sorry, that nickname is already taken , try something else");
+                }
+           });
+           $nickBox.val('');
+       });
+
+       socket.on('usernames',function(data){
+            var html='<ul>';
+            for(i=0;i<data.length;i++){
+              html+='<li><span>'+data[i]+'</span></li>';
+            }
+            html=html+'</ul>';
+            $users.html(html);
+        });
+
+
+
+       $messageForm.submit(function(e){
+            e.preventDefault();
+            socket.emit('send message',$messageBox.val(),function(data){
+              $chat.append("<p align='right' class='error'>"+data+"&nbsp;&nbsp;</p><br/>");
+            });
+            $messageBox.val('');
+       });
+
+
+
+       socket.on('new message',function(data){
+         if(data.nick===title){
+           $chat.append("<p style='' align='right' class='msg'><b>"+data.nick+" : </b>"+data.msg+"&nbsp;&nbsp;</p>");
+         }else{
+           $chat.append("<p style='' align='left' class='msg'><b>&nbsp;&nbsp;&nbsp;"+data.nick+" : </b>"+data.msg+"</p>");
+         }
+         scrollCorrect();
+       });
+
+
+
+       socket.on('whisper',function(data){
+           $chat.append("<p align='left' class='whisper'><b>&nbsp;&nbsp;&nbsp;"+data.nick+" : </b>"+data.msg+"</p><br/>");
+
+       });
+
+       socket.on('private',function(data){
+           $chat.append("<p align='right' class='whisper'><b>"+title+"@"+data.nick+": </b>"+data.msg+"&nbsp;&nbsp;</p><br/>");
+
+       });
+
+
+        function scrollCorrect(){
+             chatOuter.scrollTop(chatInner.outerHeight());
+        }
+    });
+
+   </script>
+
+</body>
+</html>
